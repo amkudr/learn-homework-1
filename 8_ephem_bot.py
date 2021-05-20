@@ -12,7 +12,10 @@
   бота отвечать, в каком созвездии сегодня находится планета.
 
 """
-import logging
+import logging, ephem
+import settings
+
+from datetime import datetime
 
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
@@ -21,13 +24,13 @@ logging.basicConfig(format='%(name)s - %(levelname)s - %(message)s',
                     filename='bot.log')
 
 
-PROXY = {
-    'proxy_url': 'socks5://t1.learn.python.ru:1080',
-    'urllib3_proxy_kwargs': {
-        'username': 'learn',
-        'password': 'python'
-    }
-}
+# PROXY = {
+#     'proxy_url': 'socks5://t1.learn.python.ru:1080',
+#     'urllib3_proxy_kwargs': {
+#         'username': 'learn',
+#         'password': 'python'
+#     }
+# }
 
 
 def greet_user(update, context):
@@ -35,17 +38,37 @@ def greet_user(update, context):
     print(text)
     update.message.reply_text(text)
 
+def find_planet(update, context):
+    text = update.message.text.split()
+    if len(text) == 1:
+      update.message.reply_text("Введите планету") 
+     
+    else:
+      try:
+        planet = text[1].lower().capitalize()        
+        obj_planet = getattr(ephem, planet)
+        print("Задана планета")
+      except:
+        update.message.reply_text("Введите настоящую планету после /planet")    
+      location = obj_planet(datetime.now().date())
+      const = ephem.constellation(location)    
+      update.message.reply_text(const)   
+
 
 def talk_to_me(update, context):
     user_text = update.message.text
     print(user_text)
-    update.message.reply_text(text)
+    update.message.reply_text(user_text)
+
 
 
 def main():
-    mybot = Updater("КЛЮЧ, КОТОРЫЙ НАМ ВЫДАЛ BotFather", request_kwargs=PROXY, use_context=True)
+    mybot = Updater(settings.API_KEY, 
+    #request_kwargs=PROXY, 
+    use_context=True)
 
     dp = mybot.dispatcher
+    dp.add_handler(CommandHandler("planet", find_planet))
     dp.add_handler(CommandHandler("start", greet_user))
     dp.add_handler(MessageHandler(Filters.text, talk_to_me))
 
